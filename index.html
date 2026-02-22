@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎵 타이밍 맞추기</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#07070f;color:#f0f0f0;font-family:'Noto Sans KR',sans-serif;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px;overflow-x:hidden;}
+  .glow{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,rgba(255,77,109,0.07) 0%,transparent 70%);transition:background 0.5s;}
+  body.win .glow{background:radial-gradient(ellipse at 50% 50%,rgba(248,195,44,0.22) 0%,transparent 55%);}
+  body.lose .glow{background:radial-gradient(ellipse at 50% 50%,rgba(255,77,109,0.2) 0%,transparent 55%);}
+  .wrap{position:relative;z-index:1;width:min(520px,100%);display:flex;flex-direction:column;align-items:center;gap:14px;padding-top: 60px;}
+  h1{font-family:'Black Han Sans',sans-serif;font-size:3.2rem;margin-top: -30px;
+    background:linear-gradient(135deg,#4cc9f0,#ff4d6d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;}
+  .sub{color:#444;font-size:1.1rem;text-align:center;margin-bottom: 30px;margin-top:-8px;}
+
+  .page{width:100%;display:none;flex-direction:column;gap:12px;}
+  .page.on{display:flex;}
+
+  .btn{padding:12px 14px;border-radius:10px;border:1px solid #2a2a4a;background:#13131e;color:#f0f0f0;
+    cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:0.9rem;transition:all 0.15s;}
+  .btn:hover{border-color:#4cc9f0; background:#1a1a2e;}
+
+  .pick{background:#13131e;border:1px solid #222;border-radius:14px;padding:20px 18px;
+    cursor:pointer;display:flex;align-items:center;gap:14px;transition:all 0.18s;}
+  .pick:hover{border-color:#4cc9f0;transform:scale(1.02);box-shadow:0 10px 20px rgba(0,0,0,0.3);}
+  .pe{font-size:1.8rem;flex-shrink:0;}
+  .pi{flex:1;}.pn{font-weight:700;font-size:1.2rem;}
+
+  .nname{font-family:'Black Han Sans',sans-serif;font-size:1.5rem;color:#4cc9f0;text-align:center;}
+  .pbar{width:100%;background:#13131e;border:1px solid #1e1e3a;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;}
+  #pp{width:44px;height:44px;border-radius:50%;border:none;background:#ff4d6d;color:#fff;font-size:1.1rem;cursor:pointer;flex-shrink:0;}
+  .pw{flex:1;height:8px;background:#222;border-radius:4px;cursor:pointer;position:relative;}
+  .pf{height:100%;border-radius:4px;background:linear-gradient(90deg,#4cc9f0,#ff4d6d);width:0%;}
+  .pm{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#f8c32c;box-shadow:0 0 8px #f8c32c;display:none;}
+  #at{font-size:0.8rem;color:#555;min-width:40px;text-align:right;}
+  #gs{font-family:'Black Han Sans',sans-serif;font-size:1.2rem;color:#555;text-align:center;margin:10px 0;}
+
+  #hb{width:100%;height:180px;border-radius:24px;background:#13131e;border:2px solid #2a2a4a;cursor:pointer;
+    font-family:'Black Han Sans',sans-serif;font-size:2.8rem;color:#f0f0f0;
+    transition:all 0.07s;user-select:none;position:relative;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  #hb.rd{border-color:#4cc9f0;animation:rp 1.4s infinite;}
+  #hb:disabled{opacity:0.2;}
+  @keyframes rp{50%{box-shadow:0 0 40px rgba(76,201,240,0.4)}}
+
+  #res{width:100%;background:#13131e;border:1px solid #222;border-radius:16px;padding:26px;text-align:center;display:none;}
+  #res.on{display:block;}
+  #rg{font-family:'Black Han Sans',sans-serif;font-size:2.4rem;margin-bottom:6px;}
+  
+  .fx{position:fixed;pointer-events:none;z-index:999;font-family:'Black Han Sans',sans-serif;font-size:3rem;animation:ff 0.7s ease-out forwards;}
+  @keyframes ff{from{opacity:1;transform:translateY(0)scale(1)}to{opacity:0;transform:translateY(-100px)scale(2)}}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="wrap">
+  <h1>🎵 타이밍 맞추기</h1>
+  <p class="sub">전주를 듣다가 노래가 시작되는 순간 클릭!</p>
+
+  <div class="page on" id="p-home"></div>
+
+  <div class="page" id="p-game">
+    <div class="nname" id="nn"></div>
+    <div class="pbar">
+      <button id="pp" onclick="ppTap()">▶</button>
+      <div class="pw" id="pw" onclick="seek(event)">
+        <div class="pf" id="pf"></div>
+        <div class="pm" id="pm"></div>
+      </div>
+      <div id="at">0:00</div>
+    </div>
+    <div id="gs">▶ 재생 버튼을 눌러주세요!</div>
+    <button id="hb" onclick="hit(event)" disabled>클릭</button>
+    <div id="res"><div id="rg"></div><div id="rt"></div><div id="rc"></div></div>
+    <div class="brow" style="display:flex; gap:10px; width:100%; margin-top:15px;">
+      <button class="btn" style="flex:1" onclick="resetGame()">🔄 다시하기</button>
+      <button class="btn" style="flex:1" onclick="page('home')">⬅️ 목록으로</button>
+    </div>
+  </div>
+</div>
+
+<audio id="aud"></audio>
+
+<script>
+// ══ [데이터 설정 구역] ══
+// file: 음악 파일 경로 (파일명.mp3)
+// vocal: 전주 끝나는 시각 (초 단위)
+const SONGS = [
+  {n:'바람이 불어오는 곳', e:'🌬️', file:'assets/바람이불어오는곳.mp4', vocal: 7.454},
+  {n:'아름다운 나라', e:'🌸', file:'assets/아름다운나라.mp4', vocal: 22.104},
+  {n:'사람이 꽃보다 아름다워', e:'🌺', file:'assets/사람이꽃보다아름다워.mp4', vocal: 14.782},
+  {n:"Clap Yo' Hands", e:'👏', file:'assets/clapyohands.mp4', vocal: 5.512},
+  {n:'남촌', e:'🏡', file:'assets/남촌.mp4', vocal: 27.118},
+];
+
+const aud = document.getElementById('aud');
+let gi = -1, gOn = false, gDone = false, gRaf = null;
+
+function page(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById('p-'+id).classList.add('on');
+  if(id==='home') { resetGame(); buildHome(); }
+  document.body.className='';
+}
+
+function buildHome(){
+  const w = document.getElementById('p-home');
+  w.innerHTML = '';
+  SONGS.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'pick';
+    d.innerHTML = `<span class="pe">${s.e}</span><div class="pi"><div class="pn">${s.n}</div></div>`;
+    d.onclick = () => startGame(i);
+    w.appendChild(d);
+  });
+}
+
+function startGame(i){
+  gi = i;
+  aud.src = SONGS[i].file;
+  aud.load();
+  document.getElementById('nn').textContent = SONGS[i].e + ' ' + SONGS[i].n;
+  page('game');
+}
+
+function ppTap(){
+  if(aud.paused){
+    aud.play();
+    document.getElementById('pp').textContent = '⏸';
+    const gs = document.getElementById('gs');
+    gs.textContent = '🎵 전주 흐르는 중... 시작할 때 클릭!';
+    gs.style.color = '#4cc9f0';
+    document.getElementById('hb').disabled = false;
+    document.getElementById('hb').classList.add('rd');
+    gOn = true; startGraf();
+  } else {
+    aud.pause();
+    document.getElementById('pp').textContent = '▶';
+    stopGraf();
+  }
+}
+
+function startGraf(){
+  function loop(){
+    if(aud.duration){
+      document.getElementById('pf').style.width = (aud.currentTime / aud.duration * 100) + '%';
+      const m = Math.floor(aud.currentTime / 60), s = Math.floor(aud.currentTime % 60).toString().padStart(2, '0');
+      document.getElementById('at').textContent = m + ':' + s;
+    }
+    gRaf = requestAnimationFrame(loop);
+  }
+  loop();
+}
+function stopGraf(){ if(gRaf) cancelAnimationFrame(gRaf); }
+
+function hit(e){
+  if(!gOn || gDone) return;
+  gDone = true;
+  const ct = aud.currentTime;
+  const target = SONGS[gi].vocal;
+  const diff = ct - target;
+  const abs = Math.abs(diff) * 1000;
+
+  document.getElementById('pm').style.left = (target / aud.duration * 100) + '%';
+  document.getElementById('pm').style.display = 'block';
+  document.getElementById('hb').disabled = true;
+  document.getElementById('hb').classList.remove('rd');
+
+  const g = abs <= 300 ? {l:'PERFECT', e:'⭐', c:'#f8c32c'} : {l:'MISS', e:'💨', c:'#ff4d6d'};
+  spawnFx(window.innerWidth/2, window.innerHeight*0.5, g.e);
+  
+  const rg = document.getElementById('rg');
+  rg.textContent = g.e + ' ' + g.l; rg.style.color = g.c;
+  document.getElementById('rt').textContent = diff > 0 ? `${(abs/1000).toFixed(2)}초 늦음` : `${(abs/1000).toFixed(2)}초 빠름`;
+  document.getElementById('rc').textContent = `차이: ${abs.toFixed(0)}ms`;
+  document.getElementById('res').classList.add('on');
+  document.body.className = (g.l === 'PERFECT') ? 'win' : 'lose';
+}
+
+function resetGame(){
+  aud.pause(); aud.currentTime = 0;
+  gOn = false; gDone = false; stopGraf();
+  document.getElementById('pp').textContent = '▶';
+  document.getElementById('pf').style.width = '0%';
+  document.getElementById('hb').disabled = true;
+  document.getElementById('hb').classList.remove('rd');
+  document.getElementById('res').classList.remove('on');
+  document.getElementById('pm').style.display = 'none';
+  document.getElementById('gs').textContent = '▶ 재생 버튼을 눌러주세요!';
+  document.getElementById('gs').style.color = '#555';
+}
+
+function spawnFx(x, y, t){
+  const d = document.createElement('div'); d.className = 'fx';
+  d.textContent = t; d.style.left = x + 'px'; d.style.top = y + 'px';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 700);
+}
+
+document.addEventListener('keydown', e => { if(e.code === 'Space') hit(e); });
+buildHome();
+</script>
+</body>
+
+</html>
